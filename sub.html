@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>구독 관리</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: #0f0f0f;
+    color: #f0f0f0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    min-height: 100vh;
+    padding-bottom: 100px;
+  }
+
+  .header {
+    background: #0f0f0f;
+    padding: 32px 20px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid #222;
+  }
+
+  .header-label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: #555;
+    margin-bottom: 8px;
+    font-family: monospace;
+  }
+
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-title { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+
+  .add-btn {
+    background: #f0f0f0;
+    color: #0f0f0f;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: monospace;
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+  .add-btn.active { background: #333; color: #f0f0f0; }
+
+  .summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+
+  .summary-box {
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .summary-label { font-size: 10px; color: #555; letter-spacing: 2px; font-family: monospace; margin-bottom: 6px; }
+  .summary-val { font-size: 20px; font-weight: 700; color: #f0f0f0; }
+  .summary-sub { font-size: 11px; color: #666; margin-top: 3px; font-family: monospace; }
+
+  .rate-row {
+    padding: 10px 20px;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #555;
+  }
+
+  .rate-row input {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #aaa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    width: 80px;
+    outline: none;
+  }
+
+  .container { padding: 0 16px; }
+
+  .form-box {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+    display: none;
+  }
+  .form-box.open { display: block; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+
+  .form-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .form-label { font-size: 10px; color: #555; letter-spacing: 2px; font-family: monospace; }
+
+  .form-field input,
+  .form-field select {
+    background: #0f0f0f;
+    border: 1px solid #2a2a2a;
+    color: #f0f0f0;
+    padding: 9px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+    width: 100%;
+    -webkit-appearance: none;
+  }
+
+  .form-field select option { background: #1a1a1a; }
+
+  .submit-btn {
+    background: #f0f0f0;
+    color: #0f0f0f;
+    border: none;
+    border-radius: 6px;
+    padding: 11px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: monospace;
+    letter-spacing: 1px;
+    font-weight: 700;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .filters {
+    display: flex;
+    gap: 8px;
+    padding: 14px 0 10px;
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .filters::-webkit-scrollbar { display: none; }
+
+  .filter-btn {
+    background: transparent;
+    color: #555;
+    border: 1px solid #2a2a2a;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: monospace;
+    white-space: nowrap;
+  }
+  .filter-btn.active { background: #f0f0f0; color: #0f0f0f; border-color: #f0f0f0; font-weight: 700; }
+
+  .items { display: flex; flex-direction: column; gap: 8px; }
+
+  .item {
+    background: #1a1a1a;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    transition: opacity 0.2s;
+    position: relative;
+  }
+
+  .item.cancelled { opacity: 0.4; }
+  .item.considering { border-color: #facc15; border-style: dashed; }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+
+  .item-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  .item-left { display: flex; align-items: center; flex: 1; }
+  .item-name { font-size: 15px; font-weight: 600; }
+  .item-status-label { font-size: 10px; font-family: monospace; letter-spacing: 1px; }
+
+  .item-prices { display: flex; gap: 10px; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; }
+  .price-main { font-size: 18px; font-weight: 700; font-family: monospace; }
+  .price-sub { font-size: 12px; color: #555; font-family: monospace; }
+  .price-cycle { font-size: 11px; color: #555; font-family: monospace; }
+
+  .item-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .meta-tag {
+    font-size: 10px;
+    font-family: monospace;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #222;
+    color: #666;
+    letter-spacing: 1px;
+  }
+  .item-note { font-size: 12px; color: #555; margin-top: 6px; font-style: italic; line-height: 1.4; }
+
+  .item-actions { display: flex; gap: 5px; flex-shrink: 0; margin-left: 8px; }
+
+  .action-btn {
+    background: #222;
+    border: none;
+    border-radius: 6px;
+    width: 30px; height: 30px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777;
+  }
+
+  .empty {
+    text-align: center;
+    color: #333;
+    padding: 60px 0;
+    font-family: monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  .section-title {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #444;
+    font-family: monospace;
+    margin: 16px 0 8px;
+    padding-left: 2px;
+  }
+
+  select.status-select {
+    background: #0f0f0f;
+    border: 1px solid #2a2a2a;
+    color: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: monospace;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-label">SUBSCRIPTION TRACKER</div>
+  <div class="header-row">
+    <div class="header-title">구독 관리</div>
+    <button class="add-btn" id="toggle-btn" onclick="toggleForm()">+ 추가</button>
+  </div>
+</div>
+
+<!-- Summary -->
+<div class="summary" id="summary">
+  <div class="summary-box">
+    <div class="summary-label">월 지출 (활성)</div>
+    <div class="summary-val" id="total-krw">₩0</div>
+    <div class="summary-sub" id="total-usd">$0.00 / mo</div>
+  </div>
+  <div class="summary-box">
+    <div class="summary-label">연 지출 (활성)</div>
+    <div class="summary-val" id="total-yearly-krw">₩0</div>
+    <div class="summary-sub" id="sub-counts">활성 0개 · 고민중 0개</div>
+  </div>
+</div>
+
+<!-- Exchange Rate -->
+<div class="rate-row">
+  <span>환율</span>
+  <input type="number" id="rate-input" value="1380" onchange="render()" />
+  <span>원/달러</span>
+  <span style="color:#333;font-size:11px;margin-left:auto">달러 입력시 자동환산</span>
+</div>
+
+<div class="container">
+
+  <!-- Form -->
+  <div class="form-box" id="form-box">
+    <div class="form-field">
+      <div class="form-label">서비스명</div>
+      <input type="text" id="inp-name" placeholder="Netflix, ChatGPT..." />
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <div class="form-label">금액 (USD)</div>
+        <input type="number" id="inp-usd" placeholder="0.00" step="0.01" />
+      </div>
+      <div class="form-field">
+        <div class="form-label">금액 (KRW)</div>
+        <input type="number" id="inp-krw" placeholder="0" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <div class="form-label">결제 주기</div>
+        <select id="inp-cycle">
+          <option value="monthly">월간</option>
+          <option value="yearly">연간</option>
+          <option value="weekly">주간</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <div class="form-label">상태</div>
+        <select id="inp-status">
+          <option value="active">✓ 구독중</option>
+          <option value="considering">? 고민중</option>
+          <option value="cancelled">✗ 해지</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-field">
+      <div class="form-label">카테고리</div>
+      <select id="inp-category">
+        <option value="엔터">엔터 (OTT/음악)</option>
+        <option value="AI">AI / 툴</option>
+        <option value="뉴스">뉴스 / 정보</option>
+        <option value="생산성">생산성</option>
+        <option value="건강">건강 / 피트니스</option>
+        <option value="기타">기타</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <div class="form-label">메모</div>
+      <input type="text" id="inp-note" placeholder="필요한 이유, 대체재 등..." />
+    </div>
+    <button class="submit-btn" onclick="addItem()">추가 →</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">전체</button>
+    <button class="filter-btn" onclick="setFilter('active', this)">구독중</button>
+    <button class="filter-btn" onclick="setFilter('considering', this)">고민중</button>
+    <button class="filter-btn" onclick="setFilter('cancelled', this)">해지</button>
+  </div>
+
+  <div class="items" id="items"></div>
+  <div class="empty" id="empty" style="display:none">항목 없음</div>
+</div>
+
+<script>
+  const KEY = 'subscriptions-v1';
+  let items = [];
+  let currentFilter = 'all';
+  let formOpen = false;
+
+  const STATUS = {
+    active:      { label: '구독중', color: '#4ade80' },
+    considering: { label: '고민중', color: '#facc15' },
+    cancelled:   { label: '해지',   color: '#555' },
+  };
+
+  const CYCLE_LABEL = { monthly: '월', yearly: '연', weekly: '주' };
+
+  function load() {
+    try { items = JSON.parse(localStorage.getItem(KEY)) || []; }
+    catch { items = []; }
+    render();
+  }
+
+  function save() { localStorage.setItem(KEY, JSON.stringify(items)); }
+
+  function getRate() { return parseFloat(document.getElementById('rate-input').value) || 1380; }
+
+  // Convert any price to monthly KRW
+  function toMonthlyKrw(item) {
+    const rate = getRate();
+    let krw = 0;
+    if (item.usd) krw += parseFloat(item.usd) * rate;
+    if (item.krw) krw += parseFloat(item.krw);
+    if (item.cycle === 'yearly') krw /= 12;
+    if (item.cycle === 'weekly') krw *= 4.33;
+    return krw;
+  }
+
+  function toMonthlyUsd(item) {
+    const rate = getRate();
+    let usd = item.usd ? parseFloat(item.usd) : 0;
+    if (item.krw) usd += parseFloat(item.krw) / rate;
+    if (item.cycle === 'yearly') usd /= 12;
+    if (item.cycle === 'weekly') usd *= 4.33;
+    return usd;
+  }
+
+  function fmtKrw(n) {
+    return '₩' + Math.round(n).toLocaleString('ko-KR');
+  }
+  function fmtUsd(n) { return '$' + n.toFixed(2); }
+
+  function toggleForm() {
+    formOpen = !formOpen;
+    document.getElementById('form-box').classList.toggle('open', formOpen);
+    const btn = document.getElementById('toggle-btn');
+    btn.textContent = formOpen ? '취소' : '+ 추가';
+    btn.classList.toggle('active', formOpen);
+    if (formOpen) document.getElementById('inp-name').focus();
+  }
+
+  function addItem() {
+    const name = document.getElementById('inp-name').value.trim();
+    if (!name) return;
+    items.unshift({
+      id: Date.now(),
+      name,
+      usd:      document.getElementById('inp-usd').value.trim(),
+      krw:      document.getElementById('inp-krw').value.trim(),
+      cycle:    document.getElementById('inp-cycle').value,
+      status:   document.getElementById('inp-status').value,
+      category: document.getElementById('inp-category').value,
+      note:     document.getElementById('inp-note').value.trim(),
+    });
+    save();
+    ['inp-name','inp-usd','inp-krw','inp-note'].forEach(id => document.getElementById(id).value = '');
+    toggleForm();
+    render();
+  }
+
+  function setStatus(id, val) {
+    items = items.map(i => i.id === id ? {...i, status: val} : i);
+    save(); render();
+  }
+
+  function deleteItem(id) {
+    items = items.filter(i => i.id !== id);
+    save(); render();
+  }
+
+  function setFilter(f, el) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    render();
+  }
+
+  function render() {
+    const rate = getRate();
+    const active = items.filter(i => i.status === 'active');
+    const considering = items.filter(i => i.status === 'considering');
+
+    const totalMonthlyKrw = active.reduce((s, i) => s + toMonthlyKrw(i), 0);
+    const totalMonthlyUsd = active.reduce((s, i) => s + toMonthlyUsd(i), 0);
+
+    document.getElementById('total-krw').textContent = fmtKrw(totalMonthlyKrw);
+    document.getElementById('total-usd').textContent = fmtUsd(totalMonthlyUsd) + ' / mo';
+    document.getElementById('total-yearly-krw').textContent = fmtKrw(totalMonthlyKrw * 12);
+    document.getElementById('sub-counts').textContent = `활성 ${active.length}개 · 고민중 ${considering.length}개`;
+
+    let filtered = items;
+    if (currentFilter !== 'all') filtered = items.filter(i => i.status === currentFilter);
+
+    const container = document.getElementById('items');
+    const empty = document.getElementById('empty');
+
+    if (filtered.length === 0) {
+      container.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    container.innerHTML = filtered.map(item => {
+      const st = STATUS[item.status] || STATUS.active;
+      const monthlyKrw = toMonthlyKrw(item);
+      const monthlyUsd = toMonthlyUsd(item);
+
+      // Display price
+      let priceMain = '';
+      let priceSub = '';
+      if (item.usd && item.krw) {
+        priceMain = fmtUsd(parseFloat(item.usd));
+        priceSub = `+ ${fmtKrw(parseFloat(item.krw))}`;
+      } else if (item.usd) {
+        priceMain = fmtUsd(parseFloat(item.usd));
+        priceSub = `≈ ${fmtKrw(parseFloat(item.usd) * rate)}`;
+      } else if (item.krw) {
+        priceMain = fmtKrw(parseFloat(item.krw));
+        priceSub = `≈ ${fmtUsd(parseFloat(item.krw) / rate)}`;
+      } else {
+        priceMain = '미입력';
+      }
+
+      const cycleLabel = CYCLE_LABEL[item.cycle] || '월';
+      const showMonthly = item.cycle !== 'monthly' && (item.usd || item.krw);
+
+      return `
+      <div class="item ${item.status}">
+        <div class="item-top">
+          <div class="item-left">
+            <span class="status-dot" style="background:${st.color}"></span>
+            <div>
+              <div class="item-name">${escHtml(item.name)}</div>
+              <div class="item-status-label" style="color:${st.color}">${st.label}</div>
+            </div>
+          </div>
+          <div class="item-actions">
+            <button class="action-btn" onclick="deleteItem(${item.id})" style="color:#444">×</button>
+          </div>
+        </div>
+
+        <div class="item-prices">
+          <span class="price-main">${priceMain}</span>
+          ${priceSub ? `<span class="price-sub">${priceSub}</span>` : ''}
+          <span class="price-cycle">/ ${cycleLabel}</span>
+          ${showMonthly ? `<span class="price-sub">월 환산 ${fmtKrw(monthlyKrw)}</span>` : ''}
+        </div>
+
+        <div class="item-meta">
+          <span class="meta-tag">${escHtml(item.category)}</span>
+          ${item.note ? '' : ''}
+        </div>
+        ${item.note ? `<div class="item-note">${escHtml(item.note)}</div>` : ''}
+
+        <div style="margin-top:10px">
+          <select class="status-select" onchange="setStatus(${item.id}, this.value)">
+            <option value="active"      ${item.status==='active'      ?'selected':''}>✓ 구독중</option>
+            <option value="considering" ${item.status==='considering' ?'selected':''}>? 고민중</option>
+            <option value="cancelled"   ${item.status==='cancelled'   ?'selected':''}>✗ 해지</option>
+          </select>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function escHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  load();
+</script>
+</body>
+</html>

@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>자잘한 소비 줄이기 - 주간/월간 누적 시스템</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --accent: #4f46e5;
+      --accent-soft: #eef2ff;
+      --good: #059669;
+      --warn: #d97706;
+      --bad: #dc2626;
+      --shadow: 0 10px 30px rgba(0,0,0,0.06);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 80px; }
+    .hero {
+      background: linear-gradient(135deg, #eef2ff, #ffffff 60%);
+      border: 1px solid #dde3ff;
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+    h1, h2, h3, h4, p { margin: 0; }
+    h1 { font-size: 30px; margin-bottom: 8px; }
+    h2 { font-size: 22px; }
+    .sub { color: var(--muted); font-size: 15px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .card {
+      grid-column: span 12;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .kpi {
+      background: #fafafa;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .kpi .label { color: var(--muted); font-size: 13px; }
+    .kpi .value { font-size: 28px; font-weight: 800; margin-top: 6px; }
+    .good { color: var(--good); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    .section-chip {
+      display: inline-block;
+      background: var(--accent-soft);
+      color: #3730a3;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    input, select, textarea, button { font: inherit; }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      color: var(--text);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .col-3 { grid-column: span 3; }
+    .col-4 { grid-column: span 4; }
+    .col-6 { grid-column: span 6; }
+    .col-12 { grid-column: span 12; }
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .primary { background: var(--accent); color: white; }
+    .secondary { background: #eef2ff; color: #3730a3; }
+    .ghost { background: #f3f4f6; color: #374151; }
+    .list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+    .item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      background: #fff;
+      align-items: flex-start;
+    }
+    .item strong { display: block; font-size: 15px; }
+    .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eef2ff;
+      color: #3730a3;
+      margin-right: 6px;
+      margin-top: 6px;
+    }
+    .amount { font-weight: 800; font-size: 17px; white-space: nowrap; }
+    .muted { color: var(--muted); }
+    .rule {
+      background: #fafafa;
+      border-left: 4px solid var(--accent);
+      padding: 14px 16px;
+      border-radius: 12px;
+      margin-top: 12px;
+    }
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .day {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px;
+      min-height: 110px;
+    }
+    .day h4 { margin: 0 0 8px; font-size: 14px; }
+    .day .small { color: var(--muted); font-size: 12px; }
+    .progress {
+      height: 10px;
+      background: #eef2f7;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress > span {
+      display: block;
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+    }
+    .footer-note { color: var(--muted); font-size: 13px; margin-top: 10px; }
+    .empty { color: var(--muted); padding: 10px 0; }
+    .tiny-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .mini-box {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #fafafa;
+    }
+    @media (max-width: 980px) {
+      .span-3, .span-4, .span-5, .span-6, .span-7, .span-8 { grid-column: span 12; }
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+      .days { grid-template-columns: repeat(2, 1fr); }
+      .col-3, .col-4, .col-6 { grid-column: span 12; }
+    }
+    @media (max-width: 520px) {
+      h1 { font-size: 24px; }
+      .kpis, .tiny-grid { grid-template-columns: 1fr; }
+      .days { grid-template-columns: 1fr; }
+      .item { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>자잘한 소비 줄이기 · 주간 + 월간 누적 시스템</h1>
+      <p class="sub">이번 주만 보는 게 아니라, 이번 달 누적과 최근 주차/월별 흐름까지 같이 보게 만든 버전이야. 입력값은 이 기기 브라우저에 저장돼.</p>
+      <div class="kpis">
+        <div class="kpi">
+          <div class="label">현재 주 사용액</div>
+          <div class="value" id="weekSpentTop">0원</div>
+        </div>
+        <div class="kpi">
+          <div class="label">현재 주 남은 금액</div>
+          <div class="value good" id="weekLeftTop">0원</div>
+        </div>
+        <div class="kpi">
+          <div class="label">현재 달 누적</div>
+          <div class="value" id="monthSpentTop">0원</div>
+        </div>
+        <div class="kpi">
+          <div class="label">총 기록 누적</div>
+          <div class="value" id="allSpentTop">0원</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card span-4">
+        <div class="section-chip">설정</div>
+        <h2>1) 기준 예산과 이번 주 룰</h2>
+        <div class="row">
+          <div class="col-12">
+            <label for="weekBudget">주간 자잘한 소비 예산</label>
+            <input id="weekBudget" type="number" min="0" step="1000" placeholder="예: 70000" />
+          </div>
+          <div class="col-12">
+            <label for="monthBudget">월간 자잘한 소비 예산</label>
+            <input id="monthBudget" type="number" min="0" step="1000" placeholder="예: 300000" />
+          </div>
+          <div class="col-12">
+            <label for="mainLeak">이번 주 가장 먼저 막을 구멍 1개</label>
+            <select id="mainLeak">
+              <option value="배달">배달</option>
+              <option value="카페">카페</option>
+              <option value="편의점">편의점</option>
+              <option value="택시">택시</option>
+              <option value="온라인 쇼핑">온라인 쇼핑</option>
+              <option value="소품/굿즈">소품/굿즈</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label for="ruleText">이번 주 한 줄 규칙</label>
+            <input id="ruleText" type="text" placeholder="예: 평일 배달은 2번까지만" />
+          </div>
+        </div>
+        <div class="btns">
+          <button class="primary" id="saveRules">저장하기</button>
+          <button class="ghost" id="resetAll">전체 초기화</button>
+        </div>
+        <div class="rule" id="rulePreview"></div>
+      </div>
+
+      <div class="card span-8">
+        <div class="section-chip">기록</div>
+        <h2>2) 소비 기록하기</h2>
+        <p class="sub" style="margin-top:6px;">계속 여기에 쌓아두면 현재 주/현재 달/최근 히스토리가 자동 집계돼.</p>
+        <div class="row">
+          <div class="col-3">
+            <label for="date">날짜</label>
+            <input id="date" type="date" />
+          </div>
+          <div class="col-3">
+            <label for="category">카테고리</label>
+            <select id="category">
+              <option value="배달">배달</option>
+              <option value="카페">카페</option>
+              <option value="편의점">편의점</option>
+              <option value="택시">택시</option>
+              <option value="온라인 쇼핑">온라인 쇼핑</option>
+              <option value="소품/굿즈">소품/굿즈</option>
+              <option value="앱/구독">앱/구독</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+          <div class="col-3">
+            <label for="amount">금액</label>
+            <input id="amount" type="number" min="0" step="100" placeholder="예: 5800" />
+          </div>
+          <div class="col-3">
+            <label for="reason">왜 샀는지</label>
+            <select id="reason">
+              <option value="피곤해서">피곤해서</option>
+              <option value="귀찮아서">귀찮아서</option>
+              <option value="기분전환">기분전환</option>
+              <option value="습관">습관</option>
+              <option value="급해서">급해서</option>
+              <option value="세일이라서">세일이라서</option>
+              <option value="필요해서">필요해서</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label for="item">무엇을 샀는지</label>
+            <input id="item" type="text" placeholder="예: 아이스라떼 / 야식 / 택시" />
+          </div>
+          <div class="col-6">
+            <label for="memo">메모</label>
+            <input id="memo" type="text" placeholder="예: 저녁 먹기 귀찮아서 / 집 오는 길에 그냥 삼" />
+          </div>
+        </div>
+        <div class="btns">
+          <button class="primary" id="addEntry">기록 추가</button>
+        </div>
+        <div class="footer-note">팁: 무조건 절약보다 “언제/왜 새는지”가 보이는 쪽이 오래 간다.</div>
+      </div>
+
+      <div class="card span-6">
+        <div class="section-chip">현재 주</div>
+        <h2>3) 이번 주 소비 현황</h2>
+        <div class="tiny-grid">
+          <div class="mini-box"><div class="label">주간 예산</div><div class="amount" id="weekBudgetView">0원</div></div>
+          <div class="mini-box"><div class="label">주간 사용액</div><div class="amount" id="weekSpentView">0원</div></div>
+          <div class="mini-box"><div class="label">주간 남은 금액</div><div class="amount good" id="weekLeftView">0원</div></div>
+          <div class="mini-box"><div class="label">이번 주 최다 카테고리</div><div class="amount" id="weekTopCategory">-</div></div>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <div class="label">주간 예산 사용률</div>
+            <div class="progress"><span id="weekBudgetBar"></span></div>
+            <div class="footer-note" id="weekUsageText">아직 기록이 없어.</div>
+          </div>
+        </div>
+        <div class="days" id="daysGrid"></div>
+      </div>
+
+      <div class="card span-6">
+        <div class="section-chip">현재 달</div>
+        <h2>4) 이번 달 누적 현황</h2>
+        <div class="tiny-grid">
+          <div class="mini-box"><div class="label">월간 예산</div><div class="amount" id="monthBudgetView">0원</div></div>
+          <div class="mini-box"><div class="label">월간 누적 사용액</div><div class="amount" id="monthSpentView">0원</div></div>
+          <div class="mini-box"><div class="label">월간 남은 금액</div><div class="amount good" id="monthLeftView">0원</div></div>
+          <div class="mini-box"><div class="label">월간 일평균 소비</div><div class="amount" id="monthDailyAvg">0원</div></div>
+        </div>
+        <div class="row">
+          <div class="col-12">
+            <div class="label">월간 예산 사용률</div>
+            <div class="progress"><span id="monthBudgetBar"></span></div>
+            <div class="footer-note" id="monthUsageText">월간 예산을 넣으면 더 보기 쉬워져.</div>
+          </div>
+        </div>
+        <div class="list" id="monthPatternList"></div>
+      </div>
+
+      <div class="card span-6">
+        <div class="section-chip">히스토리</div>
+        <h2>5) 최근 주간 누적</h2>
+        <div class="list" id="weekHistoryList"></div>
+      </div>
+
+      <div class="card span-6">
+        <div class="section-chip">히스토리</div>
+        <h2>6) 최근 월간 누적</h2>
+        <div class="list" id="monthHistoryList"></div>
+      </div>
+
+      <div class="card span-7">
+        <div class="section-chip">패턴</div>
+        <h2>7) 자주 새는 이유</h2>
+        <div class="list" id="patternList"></div>
+      </div>
+
+      <div class="card span-5">
+        <div class="section-chip">충동구매 보류</div>
+        <h2>8) 24시간 대기 구역</h2>
+        <p class="sub" style="margin-top:6px;">사고 싶은 건 일단 여기 적고 하루 묵혀. 다음날에도 진짜 필요하면 다시 보자.</p>
+        <div class="row">
+          <div class="col-12">
+            <label for="wishText">보류할 항목</label>
+            <input id="wishText" type="text" placeholder="예: 키캡 / 립밤 / 예쁜 컵" />
+          </div>
+        </div>
+        <div class="btns">
+          <button class="secondary" id="addWish">보류하기</button>
+        </div>
+        <div class="list" id="wishList"></div>
+      </div>
+
+      <div class="card span-12">
+        <div class="section-chip">전체 로그</div>
+        <h2>9) 소비 기록 로그</h2>
+        <div class="list" id="entryList"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const NEW_KEY = 'tiny-spend-weekly-monthly-system-v2';
+    const OLD_KEY = 'tiny-spend-weekly-system-v1';
+    const oldState = JSON.parse(localStorage.getItem(OLD_KEY) || '{}');
+    const saved = JSON.parse(localStorage.getItem(NEW_KEY) || '{}');
+
+    const state = {
+      entries: saved.entries || oldState.entries || [],
+      wishes: saved.wishes || oldState.wishes || [],
+      weekBudget: Number(saved.weekBudget ?? oldState.budget ?? 0),
+      monthBudget: Number(saved.monthBudget ?? 0),
+      mainLeak: saved.mainLeak || oldState.mainLeak || '배달',
+      ruleText: saved.ruleText || oldState.ruleText || ''
+    };
+
+    const el = (id) => document.getElementById(id);
+    const fmt = (n) => Number(n || 0).toLocaleString('ko-KR') + '원';
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+
+    function save() {
+      localStorage.setItem(NEW_KEY, JSON.stringify(state));
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function parseDateLocal(str) {
+      if (!str) return null;
+      const [y, m, d] = str.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function getWeekStart(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      d.setDate(d.getDate() + diff);
+      d.setHours(0,0,0,0);
+      return d;
+    }
+
+    function addDays(date, days) {
+      const d = new Date(date);
+      d.setDate(d.getDate() + days);
+      return d;
+    }
+
+    function formatDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function monthKey(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      return `${y}-${m}`;
+    }
+
+    function entriesSorted() {
+      return state.entries.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    function currentWeekEntries() {
+      const start = getWeekStart(today);
+      const end = addDays(start, 7);
+      return state.entries.filter(e => {
+        const d = parseDateLocal(e.date);
+        return d && d >= start && d < end;
+      });
+    }
+
+    function currentMonthEntries() {
+      const y = today.getFullYear();
+      const m = today.getMonth();
+      return state.entries.filter(e => {
+        const d = parseDateLocal(e.date);
+        return d && d.getFullYear() === y && d.getMonth() === m;
+      });
+    }
+
+    function sum(entries) {
+      return entries.reduce((acc, e) => acc + Number(e.amount || 0), 0);
+    }
+
+    function categoryTotals(entries) {
+      const map = {};
+      entries.forEach(e => map[e.category] = (map[e.category] || 0) + Number(e.amount || 0));
+      return map;
+    }
+
+    function reasonTotals(entries) {
+      const map = {};
+      entries.forEach(e => map[e.reason] = (map[e.reason] || 0) + Number(e.amount || 0));
+      return map;
+    }
+
+    function topKey(mapObj) {
+      const found = Object.entries(mapObj).sort((a, b) => b[1] - a[1])[0];
+      return found ? found[0] : '-';
+    }
+
+    function renderRule() {
+      el('weekBudget').value = state.weekBudget || '';
+      el('monthBudget').value = state.monthBudget || '';
+      el('mainLeak').value = state.mainLeak;
+      el('ruleText').value = state.ruleText;
+      const monthText = state.monthBudget ? fmt(state.monthBudget) : '미설정';
+      el('rulePreview').innerHTML = `주간 예산 <strong>${fmt(state.weekBudget)}</strong> · 월간 예산 <strong>${monthText}</strong><br>이번 주 먼저 막을 구멍은 <strong>${escapeHtml(state.mainLeak)}</strong>${state.ruleText ? `<br>이번 주 규칙: <strong>${escapeHtml(state.ruleText)}</strong>` : ''}`;
+    }
+
+    function renderTopSummary() {
+      const weekEntries = currentWeekEntries();
+      const monthEntries = currentMonthEntries();
+      const weekSpent = sum(weekEntries);
+      const monthSpent = sum(monthEntries);
+      const allSpent = sum(state.entries);
+      const weekLeft = Number(state.weekBudget || 0) - weekSpent;
+
+      el('weekSpentTop').textContent = fmt(weekSpent);
+      el('weekLeftTop').textContent = fmt(weekLeft);
+      el('weekLeftTop').className = 'value ' + (weekLeft < 0 ? 'bad' : weekLeft < state.weekBudget * 0.2 ? 'warn' : 'good');
+      el('monthSpentTop').textContent = fmt(monthSpent);
+      el('allSpentTop').textContent = fmt(allSpent);
+    }
+
+    function renderWeekPanel() {
+      const entries = currentWeekEntries();
+      const spent = sum(entries);
+      const left = Number(state.weekBudget || 0) - spent;
+      const totals = categoryTotals(entries);
+      const ratio = state.weekBudget > 0 ? Math.min(100, Math.round((spent / state.weekBudget) * 100)) : 0;
+
+      el('weekBudgetView').textContent = fmt(state.weekBudget);
+      el('weekSpentView').textContent = fmt(spent);
+      el('weekLeftView').textContent = fmt(left);
+      el('weekLeftView').className = 'amount ' + (left < 0 ? 'bad' : left < state.weekBudget * 0.2 ? 'warn' : 'good');
+      el('weekTopCategory').textContent = topKey(totals);
+      el('weekBudgetBar').style.width = ratio + '%';
+      el('weekUsageText').textContent = state.weekBudget > 0
+        ? `이번 주 예산의 ${ratio}% 사용 중. ${left >= 0 ? `남은 금액은 ${fmt(left)}.` : `${fmt(Math.abs(left))} 초과.`}`
+        : '주간 예산을 넣으면 이번 주 사용률이 보여.';
+    }
+
+    function renderMonthPanel() {
+      const entries = currentMonthEntries();
+      const spent = sum(entries);
+      const left = Number(state.monthBudget || 0) - spent;
+      const ratio = state.monthBudget > 0 ? Math.min(100, Math.round((spent / state.monthBudget) * 100)) : 0;
+      const byCat = Object.entries(categoryTotals(entries)).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      const daysElapsed = today.getDate();
+      const dailyAvg = daysElapsed > 0 ? Math.round(spent / daysElapsed) : 0;
+
+      el('monthBudgetView').textContent = fmt(state.monthBudget);
+      el('monthSpentView').textContent = fmt(spent);
+      el('monthLeftView').textContent = fmt(left);
+      el('monthLeftView').className = 'amount ' + (left < 0 ? 'bad' : left < state.monthBudget * 0.2 ? 'warn' : 'good');
+      el('monthDailyAvg').textContent = fmt(dailyAvg);
+      el('monthBudgetBar').style.width = ratio + '%';
+      el('monthUsageText').textContent = state.monthBudget > 0
+        ? `이번 달 예산의 ${ratio}% 사용 중. ${left >= 0 ? `남은 금액은 ${fmt(left)}.` : `${fmt(Math.abs(left))} 초과.`}`
+        : '월간 예산을 넣으면 이번 달 사용률이 보여.';
+
+      const list = el('monthPatternList');
+      if (!entries.length) {
+        list.innerHTML = '<div class="empty">이번 달 기록이 아직 없어.</div>';
+        return;
+      }
+      let html = '';
+      if (byCat.length) {
+        html += `<div class="rule">이번 달 가장 크게 샌 소비군: <strong>${byCat.map(([c, t]) => `${escapeHtml(c)} (${fmt(t)})`).join(', ')}</strong></div>`;
+      }
+      list.innerHTML = html;
+    }
+
+    function renderPatterns() {
+      const list = el('patternList');
+      if (!state.entries.length) {
+        list.innerHTML = '<div class="empty">기록이 쌓이면 여기서 왜 자주 새는지가 보여.</div>';
+        return;
+      }
+      const reasons = Object.entries(reasonTotals(state.entries)).sort((a, b) => b[1] - a[1]).slice(0, 4);
+      const cats = Object.entries(categoryTotals(state.entries)).sort((a, b) => b[1] - a[1]).slice(0, 4);
+      let html = '';
+      reasons.forEach(([reason, total], i) => {
+        html += `<div class="item"><div><strong>${i + 1}. ${escapeHtml(reason)}</strong><div class="meta">이 이유로 나간 돈이 큼</div></div><div class="amount">${fmt(total)}</div></div>`;
+      });
+      if (cats.length) {
+        html += `<div class="rule">전체 누적 기준 많이 새는 소비군: <strong>${cats.map(([c, t]) => `${escapeHtml(c)} (${fmt(t)})`).join(', ')}</strong></div>`;
+      }
+      list.innerHTML = html;
+    }
+
+    function renderDays() {
+      const names = ['월', '화', '수', '목', '금', '토', '일'];
+      const grid = el('daysGrid');
+      const totals = { '월': 0, '화': 0, '수': 0, '목': 0, '금': 0, '토': 0, '일': 0 };
+      const map = { 1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토', 0: '일' };
+      currentWeekEntries().forEach(e => {
+        const d = parseDateLocal(e.date);
+        if (d) totals[map[d.getDay()]] += Number(e.amount || 0);
+      });
+      const max = Math.max(1, ...Object.values(totals));
+      grid.innerHTML = names.map(name => {
+        const ratio = Math.round((totals[name] / max) * 100);
+        return `
+          <div class="day">
+            <h4>${name}요일</h4>
+            <div class="small">이번 주 사용액</div>
+            <div class="amount" style="margin-top:6px;">${fmt(totals[name])}</div>
+            <div class="progress"><span style="width:${ratio}%"></span></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderEntryList() {
+      const list = el('entryList');
+      const entries = entriesSorted();
+      if (!entries.length) {
+        list.innerHTML = '<div class="empty">아직 기록이 없어. 한두 개만 넣어도 누적 흐름이 바로 보여.</div>';
+        return;
+      }
+      list.innerHTML = entries.map(e => `
+        <div class="item">
+          <div>
+            <strong>${escapeHtml(e.item || '이름 없음')}</strong>
+            <div class="meta">${escapeHtml(e.date)} · ${escapeHtml(e.category)} · ${escapeHtml(e.memo || '')}</div>
+            <span class="badge">${escapeHtml(e.reason)}</span>
+          </div>
+          <div style="text-align:right;">
+            <div class="amount">${fmt(e.amount)}</div>
+            <button class="ghost" onclick="removeEntry('${e.id}')" style="margin-top:10px;padding:8px 10px;">삭제</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderWishes() {
+      const list = el('wishList');
+      if (!state.wishes.length) {
+        list.innerHTML = '<div class="empty">아직 보류 중인 항목이 없어.</div>';
+        return;
+      }
+      list.innerHTML = state.wishes.slice().reverse().map(w => `
+        <div class="item">
+          <div>
+            <strong>${escapeHtml(w.text)}</strong>
+            <div class="meta">보류 시작: ${escapeHtml(w.date)}</div>
+          </div>
+          <button class="ghost" onclick="removeWish('${w.id}')" style="padding:8px 10px;">삭제</button>
+        </div>
+      `).join('');
+    }
+
+    function renderWeekHistory() {
+      const map = {};
+      state.entries.forEach(e => {
+        const d = parseDateLocal(e.date);
+        if (!d) return;
+        const start = formatDate(getWeekStart(d));
+        map[start] = (map[start] || 0) + Number(e.amount || 0);
+      });
+      const rows = Object.entries(map).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 8);
+      const list = el('weekHistoryList');
+      if (!rows.length) {
+        list.innerHTML = '<div class="empty">주간 히스토리는 기록이 쌓이면 자동으로 생겨.</div>';
+        return;
+      }
+      list.innerHTML = rows.map(([start, total]) => {
+        const end = formatDate(addDays(parseDateLocal(start), 6));
+        return `<div class="item"><div><strong>${start} ~ ${end}</strong><div class="meta">해당 주 누적</div></div><div class="amount">${fmt(total)}</div></div>`;
+      }).join('');
+    }
+
+    function renderMonthHistory() {
+      const map = {};
+      state.entries.forEach(e => {
+        const d = parseDateLocal(e.date);
+        if (!d) return;
+        const key = monthKey(d);
+        map[key] = (map[key] || 0) + Number(e.amount || 0);
+      });
+      const rows = Object.entries(map).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 6);
+      const list = el('monthHistoryList');
+      if (!rows.length) {
+        list.innerHTML = '<div class="empty">월간 히스토리는 기록이 쌓이면 자동으로 생겨.</div>';
+        return;
+      }
+      list.innerHTML = rows.map(([month, total]) => {
+        return `<div class="item"><div><strong>${month}</strong><div class="meta">해당 달 누적</div></div><div class="amount">${fmt(total)}</div></div>`;
+      }).join('');
+    }
+
+    window.removeEntry = function(id) {
+      state.entries = state.entries.filter(e => e.id !== id);
+      save();
+      renderAll();
+    };
+
+    window.removeWish = function(id) {
+      state.wishes = state.wishes.filter(w => w.id !== id);
+      save();
+      renderAll();
+    };
+
+    function renderAll() {
+      renderRule();
+      renderTopSummary();
+      renderWeekPanel();
+      renderMonthPanel();
+      renderPatterns();
+      renderDays();
+      renderWeekHistory();
+      renderMonthHistory();
+      renderEntryList();
+      renderWishes();
+    }
+
+    el('date').value = todayStr;
+
+    el('saveRules').addEventListener('click', () => {
+      state.weekBudget = Number(el('weekBudget').value || 0);
+      state.monthBudget = Number(el('monthBudget').value || 0);
+      state.mainLeak = el('mainLeak').value;
+      state.ruleText = el('ruleText').value.trim();
+      save();
+      renderAll();
+    });
+
+    el('addEntry').addEventListener('click', () => {
+      const date = el('date').value;
+      const category = el('category').value;
+      const amount = Number(el('amount').value || 0);
+      const item = el('item').value.trim();
+      const reason = el('reason').value;
+      const memo = el('memo').value.trim();
+      if (!date || !item || !amount) {
+        alert('날짜, 항목, 금액은 넣어줘!');
+        return;
+      }
+      state.entries.push({
+        id: crypto.randomUUID(),
+        date,
+        category,
+        amount,
+        item,
+        reason,
+        memo
+      });
+      save();
+      el('amount').value = '';
+      el('item').value = '';
+      el('memo').value = '';
+      renderAll();
+    });
+
+    el('addWish').addEventListener('click', () => {
+      const text = el('wishText').value.trim();
+      if (!text) return;
+      state.wishes.push({ id: crypto.randomUUID(), text, date: todayStr });
+      save();
+      el('wishText').value = '';
+      renderAll();
+    });
+
+    el('resetAll').addEventListener('click', () => {
+      if (!confirm('입력한 예산/기록/보류목록을 전부 지울까?')) return;
+      localStorage.removeItem(NEW_KEY);
+      localStorage.removeItem(OLD_KEY);
+      location.reload();
+    });
+
+    save();
+    renderAll();
+  </script>
+</body>
+</html>
